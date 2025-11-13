@@ -2,6 +2,7 @@
 playground.py
 scratch.py
 demo.py
+test.py
 
 # Providers (excluded for now)
 src/providers/chatterbox_provider.py

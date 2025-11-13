@@ -31,24 +31,25 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-## Quick Start
+### Example: Cartesia Quick Test
+
+Sign up for a Cartesia Sonic API key at [cartesia.ai/sonic](https://cartesia.ai/sonic) before running the example.
+
+Set `CARTESIA_API_KEY` in your environment (or pass `api_key="..."`) and run the script below:
 
 ```python
 import asyncio
 from src.providers import get_provider
 
 async def main():
-    # Get any provider
-    provider = get_provider("cartesia", api_key="your-api-key")
-    
-    # Use unified syntax
+    provider = get_provider("cartesia", api_key="your-api-key")  # Reads CARTESIA_API_KEY from env if not passed explicitly
+
     response = await provider.synthesize(
-        voice_id="voice-id",
-        text="Hello there! [laugh] (excited) This is amazing!"
+        voice_id="6ccbfb76-1fc6-48f7-b71d-91ac6298247b", 
+        text="Hello there! [laughter] (excited) This is amazing!"
     )
-    
-    # Save audio
-    with open("output.wav", "wb") as f:
+
+    with open("output_cartesia.mp3", "wb") as f:
         f.write(response.audio)
 
 asyncio.run(main())
