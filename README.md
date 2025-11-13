@@ -215,6 +215,8 @@ pytest tests/test_cartesia_provider.py -v
 ## Roadmap
 
 - [ ] Generate proper documentation
+- [ ] Publish to PyPI as installable package
+- [ ] Create web playground
 - [ ] List voices
 - [ ] Streaming support
 - [ ] Different lang support
