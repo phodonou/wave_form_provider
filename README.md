@@ -4,6 +4,12 @@ A universal TTS (Text-to-Speech) provider interface with unified expressive mark
 
 ## Why Wave Form Provider?
 
+Expressive voice models have reached near-human quality. Over the past year, both open-source and commercial TTS providers have exploded with models that let creators control emotion, expressiveness, and delivery with precision. They now handle tone, emotion, and non-verbal sounds (laughs, sighs, whispers) at incredible quality.
+
+However, each provider has its own interface, API, studio, and markup syntax. That makes it hard to experiment, transition, compare, or mix outputs between models.
+
+**Wave Form Provider** solves this by providing a unified interface that works across all the best voice models. Write your script once using a simple, consistent syntax, and let the library handle the provider-specific compilation.
+
 - **Unified Syntax**: One markup language works across all TTS providers
 - **Provider Agnostic**: Switch providers without rewriting your text
 - **Expressive Control**: Add emotions, actions, speed, and more
@@ -220,7 +226,7 @@ pytest tests/test_cartesia_provider.py -v
 - [ ] Get audio back along with timestamps
 - [ ] Audio format conversion utilities
 - [ ] Cost tracking utilities
-- [ ] More OSS providers \
+- [ ] More OSS providers 
 
 ## Contributing
 
