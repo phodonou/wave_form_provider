@@ -54,6 +54,19 @@ async def main():
 asyncio.run(main())
 ```
 
+## Provider Registry
+
+List available providers or grab instances without importing each module:
+
+```python
+from src.providers import get_provider, list_providers
+
+providers = list_providers()
+print(providers)  # ['cartesia', 'hume', 'inworld', ...]
+
+provider = get_provider("hume", api_key="...")
+```
+
 ## Supported Providers
 
 - Cartesia
@@ -160,22 +173,7 @@ The library automatically compiles the unified syntax for each provider:
 - **Pauses**: Controlled via `style_guidance` parameter
 - *Note: All markup is stripped from text. Use natural language in `style_guidance` like "speak with excitement and laugh occasionally"*
 
-## Advanced Usage
-
-### Using the Registry
-
-```python
-from src.providers import get_provider, list_providers
-
-# List all available providers
-providers = list_providers()
-print(providers)  # ['cartesia', 'hume', 'inworld', ...]
-
-# Get provider dynamically
-provider = get_provider("hume", api_key="...")
-```
-
-### Direct Provider Import
+## Direct Provider Import
 
 ```python
 from src.providers.cartesia_provider import CartesiaProvider
@@ -188,7 +186,7 @@ response = await provider.synthesize(
 )
 ```
 
-### Environment Variables
+## Environment Variables
 
 Set API keys via environment variables:
 
