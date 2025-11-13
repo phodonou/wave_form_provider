@@ -6,7 +6,7 @@ A universal TTS (Text-to-Speech) provider interface with unified expressive mark
 
 Expressive voice models have reached near-human quality. Over the past year, both open-source and commercial TTS providers have exploded with models that let creators control emotion, expressiveness, and delivery with precision. They now handle tone, emotion, and non-verbal sounds (laughs, sighs, whispers) at incredible quality.
 
-However, each provider has its own interface, API, studio, and markup syntax. That makes it hard to experiment, transition, compare, or mix outputs between models.
+However, each provider has their own interface, API, studio, and markup syntax. That makes it hard to experiment, switch, fallback, compare, or mix outputs between models.
 
 **Wave Form Provider** solves this by providing a unified interface that works across all the best voice models. Write your script once using a simple, consistent syntax, and let the library handle the provider-specific compilation.
 
