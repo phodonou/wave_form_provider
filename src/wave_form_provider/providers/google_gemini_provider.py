@@ -88,9 +88,4 @@ class GoogleGeminiProvider(TTSProvider):
     ) -> SynthesisStreamResponse:
         raise NotImplementedError("Streaming not supported by Google Gemini provider")
     
-    async def list_voices(self) -> list[str]:
-        raise NotImplementedError("Voice listing not supported by Google Gemini provider")
-    
-    async def clone_voice(self, voice_id: str) -> str:
-        raise NotImplementedError("Voice cloning not supported by Google Gemini provider")
 

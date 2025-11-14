@@ -69,13 +69,3 @@ class TTSProvider(ABC):
     ) -> SynthesisStreamResponse:
         """Generate speech from text. Returns SynthesisResponse with audio in bytes and metadata."""
         pass
-    
-    @abstractmethod
-    async def list_voices(self) -> list[str]:
-        """List available voices. Returns a list of voice IDs."""
-        pass
-    
-    @abstractmethod
-    async def clone_voice(self, voice_id: str) -> str:
-        """Clone a voice. Returns the cloned voice ID."""
-        pass
