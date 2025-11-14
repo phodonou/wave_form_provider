@@ -4,7 +4,7 @@ import os
 from typing import Optional
 from openai import AsyncOpenAI
 from .tts_provider import TTSProvider, SynthesisResponse, SynthesisStreamResponse, SynthesisMetadata
-from src.util.util import remove_ssml
+from ..util.util import remove_ssml
 
 DEFAULT_OPEN_AI_STYLE_GUIDANCE = """
 Voice Affect: Calm, composed, and reassuring; project quiet authority and confidence.

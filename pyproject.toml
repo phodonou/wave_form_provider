@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wave-form-provider"
+version = "0.1.0"
+description = "A universal TTS provider interface with unified expressive markup syntax"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "Prince Hodonou", email = "your-email@example.com"}
+]
+keywords = ["tts", "text-to-speech", "voice", "ai", "cartesia", "elevenlabs", "hume", "inworld"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "elevenlabs>=2.22.1",
+    "google-cloud-texttospeech>=2.33.0",
+    "hume>=0.13.4",
+    "openai>=2.7.2",
+    "replicate>=1.0.7",
+    "requests>=2.32.5",
+    "pydantic>=2.12.4",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=9.0.0",
+    "mypy>=1.18.2",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+

@@ -3,7 +3,7 @@
 import pytest
 
 try:
-    from src.providers.orpheus_provider import OrpheusProvider
+    from src.wave_form_provider.providers.orpheus_provider import OrpheusProvider
 except ImportError:
     OrpheusProvider = None
 

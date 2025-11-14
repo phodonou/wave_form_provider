@@ -1,7 +1,7 @@
 """Tests for Cartesia provider compilation logic."""
 
 import pytest
-from src.providers.cartesia_provider import CartesiaProvider
+from src.wave_form_provider.providers.cartesia_provider import CartesiaProvider
 
 
 class TestCartesiaCompileText:

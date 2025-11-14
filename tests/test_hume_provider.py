@@ -3,7 +3,7 @@
 import pytest
 
 try:
-    from src.providers.hume_provider import HumeProvider
+    from src.wave_form_provider.providers.hume_provider import HumeProvider
 except ImportError:
     HumeProvider = None
 

@@ -3,7 +3,7 @@
 import pytest
 
 try:
-    from src.providers.inworld_provider import InworldProvider
+    from src.wave_form_provider.providers.inworld_provider import InworldProvider
 except ImportError:
     InworldProvider = None
 

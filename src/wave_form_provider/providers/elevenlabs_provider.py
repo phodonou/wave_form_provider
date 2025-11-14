@@ -4,7 +4,7 @@ import os
 from typing import Optional
 from elevenlabs import ElevenLabs, Voice, VoiceSettings
 from .tts_provider import TTSProvider, SynthesisResponse, SynthesisStreamResponse, SynthesisMetadata
-from src.util.util import convert_parentheses_to_brackets
+from ..util.util import convert_parentheses_to_brackets
 
 
 class ElevenLabsProvider(TTSProvider):

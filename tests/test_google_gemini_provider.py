@@ -3,7 +3,7 @@
 import pytest
 
 try:
-    from src.providers.google_gemini_provider import GoogleGeminiProvider
+    from src.wave_form_provider.providers.google_gemini_provider import GoogleGeminiProvider
 except ImportError:
     GoogleGeminiProvider = None
 

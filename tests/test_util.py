@@ -1,7 +1,7 @@
 """Tests for utility functions."""
 
 import pytest
-from src.util.util import remove_ssml, convert_parentheses_to_brackets
+from src.wave_form_provider.util.util import remove_ssml, convert_parentheses_to_brackets
 
 
 class TestRemoveSSML:

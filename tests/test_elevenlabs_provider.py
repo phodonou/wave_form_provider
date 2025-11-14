@@ -1,7 +1,7 @@
 """Tests for ElevenLabs provider compilation logic."""
 
 import pytest
-from src.providers.elevenlabs_provider import ElevenLabsProvider
+from src.wave_form_provider.providers.elevenlabs_provider import ElevenLabsProvider
 
 
 class TestElevenLabsCompileText:

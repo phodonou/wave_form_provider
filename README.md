@@ -39,10 +39,10 @@ Set `CARTESIA_API_KEY` in your environment (or pass `api_key="..."`) and run the
 
 ```python
 import asyncio
-from src.providers import get_provider
+from wave_form_provider.providers import CartesiaProvider
 
 async def main():
-    provider = get_provider("cartesia", api_key="your-api-key")  # Reads CARTESIA_API_KEY from env if not passed explicitly
+    provider = CartesiaProvider()  # Reads CARTESIA_API_KEY from env, or pass api_key="..."
 
     response = await provider.synthesize(
         voice_id="6ccbfb76-1fc6-48f7-b71d-91ac6298247b", 
@@ -53,19 +53,6 @@ async def main():
         f.write(response.audio)
 
 asyncio.run(main())
-```
-
-## Provider Registry
-
-List available providers or grab instances without importing each module:
-
-```python
-from src.providers import get_provider, list_providers
-
-providers = list_providers()
-print(providers)  # ['cartesia', 'hume', 'inworld', ...]
-
-provider = get_provider("hume", api_key="...")
 ```
 
 ## Supported Providers
@@ -174,17 +161,20 @@ The library automatically compiles the unified syntax for each provider:
 - **Pauses**: Controlled via `style_guidance` parameter
 - *Note: All markup is stripped from text. Use natural language in `style_guidance` like "speak with excitement and laugh occasionally"*
 
-## Direct Provider Import
+## Using Different Providers
+
+Import any provider directly:
 
 ```python
-from src.providers.cartesia_provider import CartesiaProvider
+from wave_form_provider.providers import CartesiaProvider, ElevenLabsProvider, HumeProvider
 
-provider = CartesiaProvider(api_key="your-api-key")
-response = await provider.synthesize(
-    voice_id="voice-id",
-    text="Your text here",
-    creativity=0.7,  # 0.0 to 1.0
-)
+# Use Cartesia
+cartesia = CartesiaProvider()
+response = await cartesia.synthesize(voice_id="...", text="...")
+
+# Use ElevenLabs
+elevenlabs = ElevenLabsProvider(api_key="...")
+response = await elevenlabs.synthesize(voice_id="...", text="...")
 ```
 
 ## Environment Variables

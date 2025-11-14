@@ -1,7 +1,7 @@
 """Tests for OpenAI provider compilation logic."""
 
 import pytest
-from src.providers.openai_provider import OpenAIProvider
+from src.wave_form_provider.providers.openai_provider import OpenAIProvider
 
 
 class TestOpenAICompileText:
