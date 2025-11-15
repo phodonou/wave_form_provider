@@ -121,8 +121,8 @@ class HumeProvider(TTSProvider):
         compiled_text = self.compile_text(text)
         utterance_dicts = self._parse_to_utterances(compiled_text)
 
-        voice = PostedUtteranceVoiceWithName(
-            name=voice_id,
+        voice = PostedUtteranceVoiceWithId(
+            id=voice_id,
             provider="HUME_AI",
         )
 

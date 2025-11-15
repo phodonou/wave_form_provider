@@ -177,6 +177,92 @@ elevenlabs = ElevenLabsProvider(api_key="...")
 response = await elevenlabs.synthesize(voice_id="...", text="...")
 ```
 
+## API Reference
+
+### Method: `synthesize()`
+
+Generate speech from text and return audio bytes.
+
+```python
+async def synthesize(
+    voice_id: str,                    # Voice ID from provider (get from provider's dashboard/docs)
+    text: str,                         # Text to synthesize (supports unified syntax)
+    style_guidance: Optional[str] = None,  # Natural language style guidance (provider-specific)
+    seed: Optional[float] = None,     # Random seed for reproducibility
+    creativity: float = 0.5,          # Creativity/variation (0.0-1.0, default 0.5)
+) -> SynthesisResponse
+```
+
+**Returns:** `SynthesisResponse` object with:
+- `response.audio` - `bytes`: Audio data (MP3, WAV, etc. depending on provider)
+- `response.metadata` - `SynthesisMetadata` object containing:
+  - `voice_id`: The voice used
+  - `model`: Model name
+  - `size_bytes`: Audio file size
+  - `streaming`: Always `False` for `synthesize()`
+  - `duration_seconds`: Audio duration (if available)
+  - `sample_rate`: Sample rate in Hz (if available)
+
+**Example:**
+```python
+response = await provider.synthesize(
+    voice_id="voice-123",
+    text="Hello! [laugh] (excited) This is amazing!",
+    creativity=0.7
+)
+
+# Save audio
+with open("output.mp3", "wb") as f:
+    f.write(response.audio)
+
+# Access metadata
+print(f"Generated {response.metadata.size_bytes} bytes")
+print(f"Model: {response.metadata.model}")
+```
+
+### Method: `synthesize_stream()`
+
+Generate speech with streaming audio chunks (not yet implemented for most providers).
+
+```python
+async def synthesize_stream(
+    voice_id: str,
+    text: str,
+    style_guidance: Optional[str] = None,
+    seed: Optional[float] = None,
+    creativity: float = 0.5,
+) -> SynthesisStreamResponse
+```
+
+**Returns:** `SynthesisStreamResponse` with `audio` as an `AsyncIterator[bytes]`.
+
+### Getting Voice IDs
+
+Voice IDs are provider-specific. Get them from:
+- **Cartesia**: [Cartesia Dashboard](https://play.cartesia.ai/voices?tab=Default+Voices)
+- **ElevenLabs**: [ElevenLabs Voice Library](https://elevenlabs.io/app/voice-library)
+- **Hume**: [Hume Dashboard](https://platform.hume.ai/voices)
+- **OpenAI**: [OpenAI Voice Models](https://platform.openai.com/docs/guides/text-to-speech)
+- **Google Gemini**: [Google Cloud Console](https://docs.cloud.google.com/text-to-speech/docs/gemini-tts)
+- **Inworld**: [Inworld Studio](https://platform.inworld.ai/tts-playground)
+- **Orpheus**: Use voice names like `"tara"`, `"dan"`, `"josh"`, `"emma"` (see [Replicate model docs](https://replicate.com/lucataco/orpheus-3b-0.1-ft))
+
+### Error Handling
+
+Providers may raise:
+- `ValueError`: Invalid parameters (e.g., missing API key, invalid voice_id)
+- `RuntimeError`: API request failed or synthesis error
+- `ImportError`: Provider dependencies not installed
+
+```python
+try:
+    response = await provider.synthesize(voice_id="...", text="...")
+except ValueError as e:
+    print(f"Invalid input: {e}")
+except RuntimeError as e:
+    print(f"Synthesis failed: {e}")
+```
+
 ## Environment Variables
 
 Set API keys via environment variables:
