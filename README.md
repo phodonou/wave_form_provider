@@ -2,6 +2,14 @@
 
 A universal TTS (Text-to-Speech) provider interface with unified expressive markup syntax. Write once, synthesize anywhere.
 
+## 🎙️ Try it Live
+
+**[Launch Waveform Studio →](https://www.waveformstudio.app/)**
+
+Interactive script editor with autocomplete and playground to test all providers side-by-side. Write expressive text, compare voices, and generate audio instantly—no API setup required.
+
+![Waveform Demo](auto_demo-ezgif.com-video-to-gif-converter.gif)
+
 ## Why Wave Form Provider?
 
 Expressive voice models have reached near-human quality. Over the past year, both open-source and commercial TTS providers have exploded with models that let creators control emotion, expressiveness, and delivery with precision. They now handle tone, emotion, and non-verbal sounds (laughs, sighs, whispers) at incredible quality.
@@ -13,6 +21,7 @@ However, each provider has their own interface, API, studio, and markup syntax. 
 - **Unified Syntax**: One markup language works across all TTS providers
 - **Provider Agnostic**: Switch providers without rewriting your text
 - **Expressive Control**: Add emotions, actions, speed, and more
+- **Visual Playground**: Test and compare providers at [waveformstudio.app](https://www.waveformstudio.app/)
 - **Type Safe**: Full type hints and async support
 - **Well Tested**: 147+ tests across all providers
 
@@ -74,6 +83,8 @@ asyncio.run(main())
 - Orpheus
 
 ## Unified Syntax
+
+> 💡 **Try it live**: Test the syntax at [waveformstudio.app](https://www.waveformstudio.app/) and hear the results instantly across all providers.
 
 The syntax is simple: write what you want to say and how you want to say it using a universal format. Use `[]` for things that can be inserted into speech, like actions. Use `()` to dictate how to say the subsequent speech. The library automatically compiles this into the right format for each TTS provider.
 
@@ -171,6 +182,12 @@ The library automatically compiles the unified syntax for each provider:
 
 ## Using Different Providers
 
+### Try in the Playground
+
+The fastest way to experiment is in the visual playground at **[waveformstudio.app](https://www.waveformstudio.app/)**. Compare providers side-by-side, test different voices, and hear the results instantly.
+
+### Use Programmatically
+
 Import any provider directly:
 
 ```python
@@ -245,6 +262,8 @@ async def synthesize_stream(
 **Returns:** `SynthesisStreamResponse` with `audio` as an `AsyncIterator[bytes]`.
 
 ### Getting Voice IDs
+
+**Tip:** Use [Waveform Studio](https://www.waveformstudio.app/) to browse and test voices from all providers in one place.
 
 Voice IDs are provider-specific. Get them from:
 - **Cartesia**: [Cartesia Dashboard](https://play.cartesia.ai/voices?tab=Default+Voices)
