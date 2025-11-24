@@ -18,6 +18,14 @@ However, each provider has their own interface, API, studio, and markup syntax. 
 
 ## Installation
 
+Install from PyPI:
+
+```bash
+pip install wave-form-provider
+```
+
+Or install from source:
+
 ```bash
 # Clone the repository
 git clone https://github.com/phodonou/wave_form_provider.git
@@ -290,9 +298,9 @@ pytest tests/test_cartesia_provider.py -v
 
 ## Roadmap
 
-- [ ] Generate proper documentation
-- [ ] Publish to PyPI as installable package
-- [ ] Create web playground
+- [x] Generate proper documentation
+- [x] Publish to PyPI as installable package
+- [x] Create web playground
 - [ ] Streaming support
 - [ ] Different lang support
 - [ ] CLI interface

@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}
 authors = [
-    {name = "Prince Hodonou", email = "your-email@example.com"}
+    {name = "Prince Hodonou", email = "prince.hodonou0@gmail.com"}
 ]
 keywords = ["tts", "text-to-speech", "voice", "ai", "cartesia", "elevenlabs", "hume", "inworld"]
 classifiers = [
