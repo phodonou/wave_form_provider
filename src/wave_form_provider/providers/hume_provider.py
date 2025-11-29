@@ -2,15 +2,20 @@
 
 import os
 import base64
+import io
 import re
-from typing import Optional
+import wave
+from typing import Optional, List
 from hume import HumeClient
 from hume.tts import (
     PostedUtterance,
     PostedUtteranceVoiceWithName,
     PostedUtteranceVoiceWithId,
+    FormatWav,
+    PostedContextWithUtterances,
 )
-from .tts_provider import TTSProvider, SynthesisResponse, SynthesisStreamResponse, SynthesisMetadata
+from .tts_provider import TTSProvider, SynthesisResponse, SynthesisStreamResponse, SynthesisMetadata, DialogueLine
+from ..util.util import resample_wav, TARGET_SAMPLE_RATE
 
 
 class HumeProvider(TTSProvider):
@@ -89,6 +94,14 @@ class HumeProvider(TTSProvider):
                     current_text_parts.append(command)
                 else:
                     current_descriptions.append(action)
+                    if current_text_parts or current_descriptions:
+                        utterances.append({
+                            'text': ' '.join(current_text_parts).strip(),
+                            'speed': current_speed,
+                            'description': ', '.join(current_descriptions) if current_descriptions else None,
+                        })
+                        current_text_parts = []
+                        current_descriptions = []
         
         if current_text_parts or current_descriptions:
             utterances.append({
@@ -151,49 +164,39 @@ class HumeProvider(TTSProvider):
             utterances.append(utterance)
 
         try:
-            response = self.client.tts.synthesize_json_streaming(
+            response = self.client.tts.synthesize_json(
                 utterances=utterances,
+                format=FormatWav(),
+                num_generations=1,
             )
 
-
             audio_bytes = b""
-            audio_format = None
             sample_rate = 22050
 
-            chunk_count = 0
-            try:
-                for chunk in response:
-                    chunk_count += 1
+            if hasattr(response, "generations") and response.generations:
+                generation = response.generations[0]
+                if hasattr(generation, "audio") and generation.audio:
+                    audio_bytes = base64.b64decode(generation.audio)
+                
+                if hasattr(generation, "encoding") and generation.encoding:
+                    if hasattr(generation.encoding, "sample_rate"):
+                        sample_rate = generation.encoding.sample_rate
+            elif isinstance(response, dict):
+                if "generations" in response and response["generations"]:
+                    generation = response["generations"][0]
+                    if "audio" in generation:
+                        audio_bytes = base64.b64decode(generation["audio"])
+                    if "encoding" in generation and "sample_rate" in generation["encoding"]:
+                        sample_rate = generation["encoding"]["sample_rate"]
 
-                    chunk_dict = (
-                        chunk
-                        if isinstance(chunk, dict)
-                        else (
-                            chunk.model_dump()
-                            if hasattr(chunk, "model_dump")
-                            else vars(chunk) if hasattr(chunk, "__dict__") else None
-                        )
-                    )
-
-                    if chunk_dict and chunk_dict.get("type") == "audio":
-                        audio_data = chunk_dict.get("audio")
-                        if audio_data:
-                            chunk_audio = base64.b64decode(audio_data)
-                            audio_bytes += chunk_audio
-
-                        if chunk_dict.get("audio_format"):
-                            audio_format = chunk_dict["audio_format"]
-            except Exception as e:
-                print(f"Error iterating chunks: {e}")
-                import traceback
-
-                traceback.print_exc()
+            audio_bytes, sample_rate = resample_wav(audio_bytes, TARGET_SAMPLE_RATE)
 
             return SynthesisResponse(
                 audio=audio_bytes,
                 metadata=SynthesisMetadata(
                     voice_id=voice_id,
                     model="octave",
+                    audio_format="wav",
                     streaming=False,
                     size_bytes=len(audio_bytes),
                     sample_rate=sample_rate,
@@ -202,6 +205,70 @@ class HumeProvider(TTSProvider):
 
         except Exception as e:
             raise RuntimeError(f"Hume TTS synthesis failed: {str(e)}") from e
+
+    async def synthesize_dialogue(
+        self,
+        dialogue_lines: List[DialogueLine],
+        style_guidance: Optional[str] = None,
+        seed: Optional[float] = None,
+        creativity: float = 0.5,
+    ) -> SynthesisResponse:
+        if not dialogue_lines:
+            raise ValueError("dialogue_lines must contain at least one item")
+
+        pcm_frames: List[bytes] = []
+        params = None
+
+        for line in dialogue_lines:
+            response = await self.synthesize(
+                voice_id=line.voice_id,
+                text=line.text,
+                style_guidance=style_guidance,
+                seed=seed,
+                creativity=creativity,
+            )
+            
+            with wave.open(io.BytesIO(response.audio), 'rb') as wav_in:
+                if params is None:
+                    params = wav_in.getparams()
+                pcm_frames.append(wav_in.readframes(wav_in.getnframes()))
+
+        sample_rate = params.framerate
+        num_channels = params.nchannels
+        sample_width = params.sampwidth
+
+        pause_seconds = 0.5
+        silence_samples = int(sample_rate * pause_seconds)
+        silence = b"\x00" * (silence_samples * num_channels * sample_width)
+
+        combined_pcm = pcm_frames[0]
+        for frame in pcm_frames[1:]:
+            combined_pcm += silence + frame
+
+        output_buffer = io.BytesIO()
+        with wave.open(output_buffer, 'wb') as wav_out:
+            wav_out.setnchannels(num_channels)
+            wav_out.setsampwidth(sample_width)
+            wav_out.setframerate(sample_rate)
+            wav_out.writeframes(combined_pcm)
+
+        audio_bytes = output_buffer.getvalue()
+
+        if len({line.voice_id for line in dialogue_lines}) > 1:
+            meta_voice_id = "multiple"
+        else:
+            meta_voice_id = dialogue_lines[0].voice_id
+
+        return SynthesisResponse(
+            audio=audio_bytes,
+            metadata=SynthesisMetadata(
+                voice_id=meta_voice_id,
+                model="octave",
+                streaming=False,
+                size_bytes=len(audio_bytes),
+                sample_rate=sample_rate,
+            ),
+        )
     
     async def synthesize_stream(
         self,

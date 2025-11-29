@@ -1,4 +1,46 @@
+import audioop
+import io
 import re
+import wave
+
+TARGET_SAMPLE_RATE = 24000
+
+
+def resample_wav(audio_bytes: bytes, target_rate: int = TARGET_SAMPLE_RATE) -> tuple[bytes, int]:
+    """
+    Resample WAV audio to target sample rate.
+    
+    Args:
+        audio_bytes: WAV audio as bytes
+        target_rate: Target sample rate (default 24000 Hz)
+        
+    Returns:
+        Tuple of (resampled WAV bytes, actual sample rate used)
+    """
+    with wave.open(io.BytesIO(audio_bytes), 'rb') as wav_in:
+        params = wav_in.getparams()
+        frames = wav_in.readframes(params.nframes)
+        
+    if params.framerate == target_rate:
+        return audio_bytes, target_rate
+    
+    converted, _ = audioop.ratecv(
+        frames,
+        params.sampwidth,
+        params.nchannels,
+        params.framerate,
+        target_rate,
+        None
+    )
+    
+    output_buffer = io.BytesIO()
+    with wave.open(output_buffer, 'wb') as wav_out:
+        wav_out.setnchannels(params.nchannels)
+        wav_out.setsampwidth(params.sampwidth)
+        wav_out.setframerate(target_rate)
+        wav_out.writeframes(converted)
+    
+    return output_buffer.getvalue(), target_rate
 
 
 def convert_parentheses_to_brackets(text: str) -> str:

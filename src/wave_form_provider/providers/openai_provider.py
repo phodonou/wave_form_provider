@@ -1,10 +1,10 @@
 """OpenAI TTS Provider implementation."""
 
 import os
-from typing import Optional
+from typing import Optional, List
 from openai import AsyncOpenAI
-from .tts_provider import TTSProvider, SynthesisResponse, SynthesisStreamResponse, SynthesisMetadata
-from ..util.util import remove_ssml
+from .tts_provider import TTSProvider, SynthesisResponse, SynthesisStreamResponse, SynthesisMetadata, DialogueLine
+from ..util.util import remove_ssml, resample_wav, TARGET_SAMPLE_RATE
 
 DEFAULT_OPEN_AI_STYLE_GUIDANCE = """
 Voice Affect: Calm, composed, and reassuring; project quiet authority and confidence.
@@ -54,23 +54,35 @@ class OpenAIProvider(TTSProvider):
                 voice=voice_id,
                 input=text,
                 instructions=instructions,
-                response_format="mp3",
+                response_format="wav",
             )
             
             audio_bytes = response.content
+            audio_bytes, sample_rate = resample_wav(audio_bytes, TARGET_SAMPLE_RATE)
             
             return SynthesisResponse(
                 audio=audio_bytes,
                 metadata=SynthesisMetadata(
                     voice_id=voice_id,
                     model="gpt-4o-mini-tts",
+                    audio_format="wav",
                     streaming=False,
                     size_bytes=len(audio_bytes),
+                    sample_rate=sample_rate,
                 )
             )
             
         except Exception as e:
             raise RuntimeError(f"OpenAI TTS synthesis failed: {str(e)}") from e
+    
+    async def synthesize_dialogue(
+        self,
+        dialogue_lines: List[DialogueLine],
+        style_guidance: Optional[str] = None,
+        seed: Optional[float] = None,
+        creativity: float = 0.5,
+    ) -> SynthesisResponse:
+        raise NotImplementedError("Dialogue synthesis not yet implemented for OpenAI provider")
     
     async def synthesize_stream(
         self,

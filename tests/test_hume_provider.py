@@ -74,19 +74,23 @@ class TestHumeParseToUtterances:
         assert utterances[1]['text'] == "Goodbye"
         assert utterances[1]['speed'] == 0.6
 
-    def test_keeps_actions_in_description(self, provider):
-        """Test that actions are kept in description."""
+    def test_actions_split_and_apply_to_previous(self, provider):
+        """Test that actions trigger splits and apply to text before them."""
         text = "Hello [laughter] world [sigh]"
         utterances = provider._parse_to_utterances(text)
-        assert len(utterances) == 1
-        assert "laughter" in utterances[0]['description']
-        assert "sigh" in utterances[0]['description']
+        assert len(utterances) == 2
+        assert utterances[0]['text'] == "Hello"
+        assert utterances[0]['description'] == "laughter"
+        assert utterances[1]['text'] == "world"
+        assert utterances[1]['description'] == "sigh"
 
-    def test_combines_emotion_and_actions(self, provider):
-        """Test that emotions and actions are combined in description."""
+    def test_emotion_then_action(self, provider):
+        """Test emotion followed by action - action applies to text before it."""
         text = "Hello (angry) I'm mad! [laughter]"
         utterances = provider._parse_to_utterances(text)
         assert len(utterances) == 2
+        assert utterances[0]['text'] == "Hello"
+        assert utterances[1]['text'] == "I'm mad!"
         assert utterances[1]['description'] == "angry, laughter"
 
     def test_pause_in_middle_stays_in_text(self, provider):
@@ -115,14 +119,15 @@ class TestHumeParseToUtterances:
 
     def test_realistic_sentence(self, provider):
         """Test realistic sentence with multiple features."""
-        text = "Hey there! [laughter] I just wanted to say (excited) I got the job! [pause] But then (sad) I realized I have to move. [sigh] [long pause]"
+        text = "Hey there! [laughter] This is amazing! (happy) I'm glad."
         utterances = provider._parse_to_utterances(text)
         assert len(utterances) == 3
+        assert utterances[0]['text'] == "Hey there!"
         assert utterances[0]['description'] == "laughter"
-        assert utterances[1]['description'] == "excited"
-        assert "[pause]" in utterances[1]['text']
-        assert utterances[2]['description'] == "sad, sigh"
-        assert utterances[2]['trailing_silence'] == 4
+        assert utterances[1]['text'] == "This is amazing!"
+        assert utterances[1]['description'] is None
+        assert utterances[2]['text'] == "I'm glad."
+        assert utterances[2]['description'] == "happy"
 
     def test_text_without_annotations(self, provider):
         """Test text without annotations creates single utterance."""
@@ -135,16 +140,17 @@ class TestHumeParseToUtterances:
 
     def test_full_flow_compile_then_parse(self, provider):
         """Test full flow: compile_text then _parse_to_utterances."""
-        original_text = "Hey there! [laughter] I just wanted to say (excited) I got the job! [pause] But then (sad) I realized I have to move. [sigh]"
+        original_text = "Hey there! [laughter] This is amazing! (happy) I'm glad."
         compiled = provider.compile_text(original_text)
         assert compiled == original_text
         
         utterances = provider._parse_to_utterances(compiled)
         assert len(utterances) == 3
+        assert utterances[0]['text'] == "Hey there!"
         assert utterances[0]['description'] == "laughter"
-        assert utterances[1]['description'] == "excited"
-        assert "[pause]" in utterances[1]['text']
-        assert utterances[2]['description'] == "sad, sigh"
+        assert utterances[1]['text'] == "This is amazing!"
+        assert utterances[2]['text'] == "I'm glad."
+        assert utterances[2]['description'] == "happy"
 
     def test_speed_and_emotion_together(self, provider):
         """Test speed persists across emotion changes."""

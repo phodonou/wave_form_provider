@@ -1,12 +1,14 @@
 """ElevenLabs TTS Provider implementation."""
 
+import io
 import os
-from typing import Optional
+import wave
+from typing import Optional, List
 from elevenlabs import ElevenLabs, Voice, VoiceSettings
-from .tts_provider import TTSProvider, SynthesisResponse, SynthesisStreamResponse, SynthesisMetadata
+from .tts_provider import TTSProvider, SynthesisResponse, SynthesisStreamResponse, SynthesisMetadata, DialogueLine
 from ..util.util import convert_parentheses_to_brackets
 
-
+SAMPLE_RATE = 24000
 class ElevenLabsProvider(TTSProvider):
     """ElevenLabs TTS provider implementation."""
 
@@ -28,6 +30,16 @@ class ElevenLabsProvider(TTSProvider):
     def compile_text(self, text: str) -> str:
         """Convert () style markers to [] format for ElevenLabs."""
         return convert_parentheses_to_brackets(text)
+
+    def _wrap_pcm_as_wav(self, pcm_data: bytes, sample_rate: int = SAMPLE_RATE, num_channels: int = 1, sample_width: int = 2) -> bytes:
+        """Wrap raw PCM data with a WAV header."""
+        output_buffer = io.BytesIO()
+        with wave.open(output_buffer, 'wb') as wav_out:
+            wav_out.setnchannels(num_channels)
+            wav_out.setsampwidth(sample_width)
+            wav_out.setframerate(sample_rate)
+            wav_out.writeframes(pcm_data)
+        return output_buffer.getvalue()
 
     async def synthesize(
         self,
@@ -57,28 +69,85 @@ class ElevenLabsProvider(TTSProvider):
         )
 
         try:
-            audio_bytes = b""
             audio_generator = self.client.text_to_speech.convert(
                 text=text,
                 voice_id=voice_id,
                 voice_settings=voice_settings,
                 model_id="eleven_v3",
+                output_format=f"pcm_{SAMPLE_RATE}",
             )
 
-            audio_bytes = b"".join(audio_generator)
+            pcm_data = b"".join(audio_generator)
+            audio_bytes = self._wrap_pcm_as_wav(pcm_data, SAMPLE_RATE)
             
             return SynthesisResponse(
                 audio=audio_bytes,
                 metadata=SynthesisMetadata(
                     voice_id=voice_id,
                     model="eleven_v3",
+                    audio_format="wav",
                     streaming=False,
                     size_bytes=len(audio_bytes),
+                    sample_rate=SAMPLE_RATE,
                 )
             )
 
         except Exception as e:
             raise RuntimeError(f"ElevenLabs TTS synthesis failed: {str(e)}") from e
+    
+    async def synthesize_dialogue(
+        self,
+        dialogue_lines: List[DialogueLine],
+        style_guidance: Optional[str] = None,
+        seed: Optional[float] = None,
+        creativity: float = 0.5,
+    ) -> SynthesisResponse:
+        """
+        Generate speech from dialogue lines using ElevenLabs dialogue API.
+
+        Args:
+            dialogue_lines: List of DialogueLine objects containing text and voice_id
+            style_guidance: Style guidance for the voice (not directly supported by ElevenLabs)
+            seed: Random seed for reproducibility
+            creativity: Stability setting (0.0 to 1.0, inverted - higher creativity = lower stability)
+
+        Returns:
+            SynthesisResponse containing audio bytes and metadata
+        """
+        inputs = []
+        for line in dialogue_lines:
+            compiled_text = self.compile_text(line.text)
+            inputs.append({
+                "text": compiled_text,
+                "voice_id": line.voice_id
+            })
+        
+        try:
+            audio_generator = self.client.text_to_dialogue.convert(
+                inputs=inputs,
+                output_format=f"pcm_{SAMPLE_RATE}",
+            )
+
+            pcm_data = b"".join(audio_generator)
+            audio_bytes = self._wrap_pcm_as_wav(pcm_data, SAMPLE_RATE)
+            
+            voice_id = dialogue_lines[0].voice_id if dialogue_lines else "unknown"
+            
+            return SynthesisResponse(
+                audio=audio_bytes,
+                metadata=SynthesisMetadata(
+                    voice_id=voice_id,
+                    model="eleven_v3",
+                    audio_format="wav",
+                    streaming=False,
+                    size_bytes=len(audio_bytes),
+                    sample_rate=SAMPLE_RATE,
+                )
+            )
+
+        except Exception as e:
+            raise RuntimeError(f"ElevenLabs dialogue synthesis failed: {str(e)}") from e
+        
     
     async def synthesize_stream(
         self,

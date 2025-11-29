@@ -2,17 +2,21 @@
 from abc import ABC, abstractmethod
 from typing import Optional, AsyncIterator
 from pydantic import BaseModel, Field, ConfigDict
-
+from typing import List
 
 class SynthesisMetadata(BaseModel):
     """Metadata about the synthesized audio."""
     voice_id: str
     model: str
+    audio_format: str = "wav"
     size_bytes: Optional[int] = None
     streaming: bool = False
     duration_seconds: Optional[float] = None
     sample_rate: Optional[int] = None
 
+class DialogueLine(BaseModel):
+    text: str
+    voice_id: str
 
 class SynthesisResponse(BaseModel):
     """Response from TTS synthesis."""
@@ -56,6 +60,17 @@ class TTSProvider(ABC):
         creativity: float = 0.5,
     ) -> SynthesisResponse:
         """Generate speech from text. Returns SynthesisResponse with audio in bytes and metadata."""
+        pass
+    
+    @abstractmethod
+    async def synthesize_dialogue(
+        self,
+        dialogue_lines: List[DialogueLine],
+        style_guidance: Optional[str] = None,
+        seed: Optional[float] = None,
+        creativity: float = 0.5,
+    ) -> SynthesisResponse:
+        """Generate speech from dialogue lines. Returns SynthesisResponse with audio in bytes and metadata."""
         pass
     
     @abstractmethod

@@ -2,10 +2,12 @@
 
 import os
 import base64
-import re
-from typing import Optional
+import io
+import wave
+from typing import Optional, List
 import requests
-from .tts_provider import TTSProvider, SynthesisResponse, SynthesisStreamResponse, SynthesisMetadata
+from .tts_provider import TTSProvider, SynthesisResponse, SynthesisStreamResponse, SynthesisMetadata, DialogueLine
+from ..util.util import convert_parentheses_to_brackets, resample_wav, TARGET_SAMPLE_RATE
 
 
 class InworldProvider(TTSProvider):
@@ -19,88 +21,10 @@ class InworldProvider(TTSProvider):
             )
         
         self.base_url = "https://api.inworld.ai/tts/v1/voice"
-        
-        self.speed_map = {
-            "slow": 0.7,
-            "normal": 1.0,
-            "fast": 1.3,
-            "really fast": 1.5,
-        }
 
     def compile_text(self, text: str) -> str:
-        """Pass text through - processing happens in _parse_to_segments."""
-        return text
-    
-    def _parse_to_segments(self, text: str) -> list[dict]:
-        """
-        Parse text into segments, splitting on emotion/speed changes.
-        
-        Returns list of segments with:
-        - text: The text content (with [] actions preserved)
-        - emotion: Emotion marker to prepend (or None)
-        - speed: Speed value for audioConfig.speakingRate (or None)
-        """
-        segments = []
-        current_text_parts = []
-        current_speed = None
-        current_emotion = None
-        
-        pattern = r'(\([^)]+\)|\[[^\]]+\])'
-        
-        i = 0
-        while i < len(text):
-            match = re.search(pattern, text[i:])
-            if not match:
-                remaining = text[i:].strip()
-                if remaining:
-                    current_text_parts.append(remaining)
-                break
-            
-            before = text[i:i+match.start()].strip()
-            if before:
-                current_text_parts.append(before)
-            
-            command = match.group(1)
-            i += match.end()
-            
-            if command.startswith('('):
-                cmd = command[1:-1].strip().lower()
-                
-                if cmd in self.speed_map:
-                    # Speed change - create new segment
-                    if current_text_parts:
-                        segments.append({
-                            'text': ' '.join(current_text_parts).strip(),
-                            'emotion': current_emotion,
-                            'speed': current_speed,
-                        })
-                        current_text_parts = []
-                        current_emotion = None  # Emotion doesn't persist
-                    current_speed = self.speed_map[cmd]
-                else:
-                    # Emotion change - create new segment
-                    if current_text_parts:
-                        segments.append({
-                            'text': ' '.join(current_text_parts).strip(),
-                            'emotion': current_emotion,
-                            'speed': current_speed,
-                        })
-                        current_text_parts = []
-                        current_speed = None  # Speed doesn't persist
-                    current_emotion = cmd
-            
-            elif command.startswith('['):
-                # Action - keep in text
-                current_text_parts.append(command)
-        
-        if current_text_parts:
-            segments.append({
-                'text': ' '.join(current_text_parts).strip(),
-                'emotion': current_emotion,
-                'speed': current_speed,
-            })
-        
-        return [s for s in segments if s['text']]
+        """Convert () to [] for Inworld - it uses [emotion] format."""
+        return convert_parentheses_to_brackets(text)
 
     async def synthesize(
         self,
@@ -110,65 +34,110 @@ class InworldProvider(TTSProvider):
         seed: Optional[float] = None,
         creativity: float = 0.5,
     ) -> SynthesisResponse:
-        compiled_text = self.compile_text(text)
-        segments = self._parse_to_segments(compiled_text)
+        text = self.compile_text(text)
         
-        if len(segments) > 3:
-            print(f"Warning: {len(segments)} emotion/speed changes detected. This will result in {len(segments)} API calls.")
-        
-        audio_chunks = []
-        total_size = 0
-        
-        for segment in segments:
-            segment_text = segment['text']
-            
-            # Prepend emotion marker if present
-            if segment['emotion']:
-                segment_text = f"[{segment['emotion']}] {segment_text}"
-            
-            payload = {
-                "text": segment_text,
-                "voiceId": voice_id,
-                "modelId": "inworld-tts-1",
-                "audioConfig": {}
+        payload = {
+            "text": text,
+            "voiceId": voice_id,
+            "modelId": "inworld-tts-1",
+            "audioConfig": {
+                "audioEncoding": "LINEAR16"
             }
-            
-            # Add speaking rate if present
-            if segment.get('speed') is not None:
-                payload["audioConfig"]["speakingRate"] = segment['speed']
-            
-            # Add temperature (creativity)
-            if creativity != 0.5:
-                payload["audioConfig"]["temperature"] = creativity * 2.0  # Map 0.5 to 1.0 (Inworld default)
-            
-            headers = {
-                "Authorization": f"Basic {self.api_key}",
-                "Content-Type": "application/json"
-            }
-            
-            try:
-                response = requests.post(self.base_url, json=payload, headers=headers)
-                response.raise_for_status()
-                
-                result = response.json()
-                audio_bytes = base64.b64decode(result["audioContent"])
-                audio_chunks.append(audio_bytes)
-                total_size += len(audio_bytes)
-                
-            except Exception as e:
-                raise RuntimeError(f"Inworld TTS synthesis failed on segment '{segment_text[:50]}...': {str(e)}") from e
+        }
         
-        # Concatenate all audio chunks
-        combined_audio = b"".join(audio_chunks)
+        if creativity != 0.5:
+            payload["audioConfig"]["temperature"] = creativity * 2.0
+        
+        headers = {
+            "Authorization": f"Basic {self.api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        try:
+            response = requests.post(self.base_url, json=payload, headers=headers)
+            response.raise_for_status()
+            
+            result = response.json()
+            audio_bytes = base64.b64decode(result["audioContent"])
+            audio_bytes, sample_rate = resample_wav(audio_bytes, TARGET_SAMPLE_RATE)
+        
+            return SynthesisResponse(
+                audio=audio_bytes,
+                metadata=SynthesisMetadata(
+                    voice_id=voice_id,
+                    model="inworld-tts-1",
+                    audio_format="wav",
+                    streaming=False,
+                    size_bytes=len(audio_bytes),
+                    sample_rate=sample_rate,
+                )
+            )
+            
+        except Exception as e:
+            raise RuntimeError(f"Inworld TTS synthesis failed: {str(e)}") from e
+
+    async def synthesize_dialogue(
+        self,
+        dialogue_lines: List[DialogueLine],
+        style_guidance: Optional[str] = None,
+        seed: Optional[float] = None,
+        creativity: float = 0.5,
+    ) -> SynthesisResponse:
+        if not dialogue_lines:
+            raise ValueError("dialogue_lines must contain at least one item")
+
+        pcm_frames: List[bytes] = []
+        params = None
+
+        for line in dialogue_lines:
+            response = await self.synthesize(
+                voice_id=line.voice_id,
+                text=line.text,
+                style_guidance=style_guidance,
+                seed=seed,
+                creativity=creativity,
+            )
+            
+            with wave.open(io.BytesIO(response.audio), 'rb') as wav_in:
+                if params is None:
+                    params = wav_in.getparams()
+                pcm_frames.append(wav_in.readframes(wav_in.getnframes()))
+
+        sample_rate = params.framerate
+        num_channels = params.nchannels
+        sample_width = params.sampwidth
+
+        pause_seconds = 0.5
+        silence_samples = int(sample_rate * pause_seconds)
+        silence = b"\x00" * (silence_samples * num_channels * sample_width)
+
+        combined_pcm = pcm_frames[0]
+        for frame in pcm_frames[1:]:
+            combined_pcm += silence + frame
+
+        output_buffer = io.BytesIO()
+        with wave.open(output_buffer, 'wb') as wav_out:
+            wav_out.setnchannels(num_channels)
+            wav_out.setsampwidth(sample_width)
+            wav_out.setframerate(sample_rate)
+            wav_out.writeframes(combined_pcm)
+
+        audio_bytes = output_buffer.getvalue()
+
+        if len({line.voice_id for line in dialogue_lines}) > 1:
+            meta_voice_id = "multiple"
+        else:
+            meta_voice_id = dialogue_lines[0].voice_id
         
         return SynthesisResponse(
-            audio=combined_audio,
+            audio=audio_bytes,
             metadata=SynthesisMetadata(
-                voice_id=voice_id,
+                voice_id=meta_voice_id,
                 model="inworld-tts-1",
                 streaming=False,
-                size_bytes=total_size,
-            )
+                size_bytes=len(audio_bytes),
+                sample_rate=sample_rate,
+            ),
         )
     
     async def synthesize_stream(
@@ -180,5 +149,3 @@ class InworldProvider(TTSProvider):
         creativity: float = 0.5,
     ) -> SynthesisStreamResponse:
         raise NotImplementedError("Streaming not supported by Inworld provider")
-    
-
